@@ -63,9 +63,20 @@ The solution is straight forward, just implement the instructions and you are do
 
 Timing on `Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz, 32GB DDR4 @ 2667MHz`
 
+First attempt
 ```
 Part 1 took 617.249µs
 Part 2 took 2.274364ms
 ```
+
+Second attempt
+```
+Part 1 took 25.824µs
+Part 2 took 12.271µs
+```
+
+For this second attempt I learned the lesson:
+1. Use median to minimize sum of distances.
+2. Use mean to minimize sum of squares.
 
 Rust version: `rustc 1.47.0 (18bf6b4f0 2020-10-07)`

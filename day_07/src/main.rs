@@ -1,37 +1,25 @@
 use std::fs;
 use std::io;
 use std::time::Instant;
-use std::collections::HashMap;
 
-fn part1(numbers : &Vec<usize>) -> usize { 
-    let mut solutions : HashMap<usize, usize> = HashMap::new();
-    for &number in numbers {
-        if !solutions.contains_key(&number) {
-            let solution = numbers.iter().map(|&x| if x > number { x - number } else { number - x } ).sum();
-            solutions.insert(number, solution);
-        }
-    }
-    *solutions.iter().min_by(|a, b| a.1.cmp(&b.1)).map(|(_k, v)| v).unwrap()
+fn part1(numbers : &Vec<i32>) -> i32 { 
+    let median = numbers[numbers.len() / 2];
+    numbers.iter().map(|x| (x - median).abs() ).sum()
 }
 
-fn part2(numbers : &Vec<usize>) -> usize { 
-    let max : usize = *numbers.iter().max().unwrap();
-    let mut solutions : HashMap<usize, usize> = HashMap::new();
-    for number in 0..=max {
-        if !solutions.contains_key(&number) {
-            let solution : usize = numbers.iter().map(|&x| { 
-                let s = if x > number { x - number } else { number - x };
-                (s * (s + 1)) / 2
-            } ).sum();
-            solutions.insert(number, solution);
-        }
-    }
-    *solutions.iter().min_by(|a, b| a.1.cmp(&b.1)).map(|(_k, v)| v).unwrap()
+fn part2(numbers : &Vec<i32>) -> i32 { 
+    let mean : f64 = (numbers.iter().sum::<i32>() as f64) / (numbers.len() as f64);
+    let ceil = mean.ceil() as i32;
+    let floor = mean.floor() as i32;
+    let sum_ceil = numbers.iter().map(|x| { let n = (x - ceil).abs(); (n + 1) * n / 2 } ).sum();
+    let sum_floor = numbers.iter().map(|x| { let n = (x - floor).abs(); (n + 1) * n / 2 } ).sum();
+    if sum_ceil < sum_floor { sum_ceil } else { sum_floor }
 }
 
 fn main() -> Result<(), io::Error>  {
     let f = fs::read_to_string("assets/input.txt")?;
-    let numbers : Vec<usize> = f.trim().split(",").map(|x| x.parse().unwrap()).collect();
+    let mut numbers : Vec<i32> = f.trim().split(",").map(|x| x.parse().unwrap()).collect();
+    numbers.sort();
 
     let now = Instant::now();
     println!("{}", part1(&numbers));
