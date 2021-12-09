@@ -65,3 +65,17 @@ The bottom-right basin, size `9`:
 Find the three largest basins and multiply their sizes together. In the above example, this is `9 * 14 * 9 = 1134`.
 
 _What do you get if you multiply together the sizes of the three largest basins?_
+
+
+## Solution
+
+The solution is straight forward, all you have to do is implement the instructions, and you are done.
+
+Timing on `Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz, 32GB DDR4 @ 2667MHz`
+
+```
+Part 1 took 99.225µs
+Part 1 took 259.904µs
+```
+
+Rust version: `rustc 1.47.0 (18bf6b4f0 2020-10-07)`
