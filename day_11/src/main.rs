@@ -1,7 +1,6 @@
 use std::fs;
 use std::io;
 use std::time::Instant;
-use std::collections::HashSet;
 
 type Grid = Vec<Vec<usize>>;
 
@@ -39,7 +38,6 @@ fn should_stop(grid : &Grid) -> bool {
 fn step(grid : &mut Grid) -> usize {
     let mut flashes = 0;
 
-    let mut flashed : HashSet<(usize, usize)> = HashSet::new();
     for i in 0..10 {
         for j in 0..10 {
             grid[i][j] += 1;
@@ -49,10 +47,9 @@ fn step(grid : &mut Grid) -> usize {
     loop {
         for i in 0..10 {
             for j in 0..10 {
-                if grid[i][j] > 9 && !flashed.contains(&(i, j)) {
+                if grid[i][j] > 9 {
                     grid[i][j] = 0;
                     flashes += 1;
-                    flashed.insert((i, j));
                     flash(grid, i, j);
                 }
             }

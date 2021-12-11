@@ -346,7 +346,11 @@ If you can calculate the exact moments when the octopuses will all flash simulta
 
 The solution was straight forward, just implement the instructions.
 
+Timing on `Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz, 32GB DDR4 @ 2667MHz`
+
 ```
-Part 1 took 384.356µs
-Part 2 took 1.517626ms
+Part 1 took 148.44µs
+Part 2 took 483.038µs
 ```
+
+Rust version: `rustc 1.47.0 (18bf6b4f0 2020-10-07)`
