@@ -19,7 +19,7 @@ fn parse_input(s : &String) -> Graph {
     graph
 }
 
-fn count_paths(graph : &Graph, queue : &mut VecDeque<String>, visited : &mut HashSet<String>, paths : &mut usize) {
+fn count_paths(graph : &Graph, queue : &mut VecDeque<String>, visited : &mut HashMap<String, u8>, paths : &mut usize) {
     while !queue.is_empty() {
         let v = queue.pop_front().unwrap();
         if v == "end" {
@@ -27,17 +27,20 @@ fn count_paths(graph : &Graph, queue : &mut VecDeque<String>, visited : &mut Has
             return;
         }
         for n in graph.get(&v).unwrap() {
-            if visited.contains(n) {
+            if n == "start" { continue; }
+            let is_small_cave = n.chars().all(|x| x.is_lowercase());
+            if is_small_cave && visited[n] >= 1 {
                 continue;
             }
             queue.push_back(n.to_string());
-            let is_lowercase = n.chars().all(|x| x.is_lowercase());
-            if is_lowercase {
-                visited.insert(n.to_string());
+
+            let &visits = visited.get(n).unwrap();
+            if is_small_cave {
+                visited.insert(n.to_string(), visits + 1);
             }
             count_paths(graph, queue, visited, paths);
-            if is_lowercase {
-                visited.remove(n);
+            if is_small_cave {
+                visited.insert(n.to_string(), visits);
             }
             queue.pop_back();
         }
@@ -45,11 +48,14 @@ fn count_paths(graph : &Graph, queue : &mut VecDeque<String>, visited : &mut Has
 }
 
 fn part1(graph : &Graph) -> usize {
-    let mut visited : HashSet<String> = HashSet::new();
+    let mut visited : HashMap<String, u8> = HashMap::new();
     let mut queue : VecDeque<String> = VecDeque::new();
     let mut paths = 0;
     queue.push_back("start".to_string());
-    visited.insert("start".to_string());
+    for k in graph.keys() {
+        visited.insert(k.to_string(), 0);
+    }
+    visited.insert("start".to_string(), 1);
     count_paths(graph, &mut queue, &mut visited, &mut paths);
     paths
 }
