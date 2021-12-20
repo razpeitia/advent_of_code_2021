@@ -1,85 +1,126 @@
-use std::collections::HashSet;
-use std::iter::FromIterator;
 use std::fs;
 use std::io;
 use std::time::Instant;
 
-type Points = Vec<(i64, i64)>;
-static DIRECTIONS: &'static [(i64, i64)] = &[
+type Grid = Vec<Vec<u8>>;
+static DIRECTIONS: &'static [(isize, isize)] = &[
     (-1, -1), (-1, 0), (-1, 1),
     (0,  -1), (0,  0), (0,  1),
     ( 1, -1), (1,  0), (1,  1),
 ];
 
-fn parse_input(s : &String) -> (&str, Points) {
+fn parse_input(s : &String) -> (&str, Grid) {
     let lines : Vec<&str> = s.trim().lines().collect();
     let input = lines[0];
-    let points : Points = s.trim()
+    let grid : Grid = s.trim()
         .split("\n\n")
         .last().unwrap()
         .lines()
-        .enumerate()
-        .flat_map(|(i, line)| {
-            line.chars().enumerate().filter_map(move |(j, c)|
+        .map(|line| {
+            line.chars().map(|c|
                 match c {
-                    '#' => Some((i as i64, j as i64)),
-                    '.' => None,
+                    '#' => 1,
+                    '.' => 0,
                     _ => unreachable!()
-                })
+                }).collect()
         }).collect();
-    (input, points)
+    (input, grid)
 }
 
-fn get_index(i : i64, j : i64, point_index : &HashSet<(i64, i64)>, min_x : i64, max_x : i64, min_y : i64, max_y : i64, rest : u16) -> u16 {
+fn get_index(i : usize, j : usize, grid : &Grid, rest : u8) -> u16 {
     let mut index : u16 = 0;
+    let n = grid.len() as isize;
     for &(di, dj) in DIRECTIONS {
-        let ni = i + di;
-        let nj = j + dj;
-        if (nj >= min_x && nj <= max_x) && (ni >= min_y && ni <= max_y) {
-            let contains = point_index.contains(&(ni, nj)) as u16;
-            index <<= 1;
-            index |= contains;
+        let ni = (i as isize) + di;
+        let nj = (j as isize) + dj;
+        index <<= 1;
+        if ni >= 0 && ni < n && nj >= 0 && nj < n {
+            let ni = ni as usize;
+            let nj = nj as usize;
+            index |= grid[ni][nj] as u16;
         } else {
-            index <<= 1;
-            index |= rest;
+            index |= rest as u16;
         }
     }
     index
 }
 
-fn get_value(i : i64, j : i64, point_index : &HashSet<(i64, i64)>, algo : &str, min_x : i64, max_x : i64, min_y : i64, max_y : i64, rest : u16) -> bool {
-    let index = get_index(i, j, point_index, min_x, max_x, min_y, max_y, rest);
-    algo.chars().nth(index as usize).unwrap() == '#'
+fn print_grid(grid : &Grid) {
+    for row in grid {
+        for &c in row {
+            if c == 0 {
+                print!(".");
+            } else {
+                print!("#");
+            }
+        }
+        println!();
+    }
+    println!();
 }
 
-fn enhance(algo : &str, input : &Points, rest : u16) -> (u16, Points) {
-    let point_index : HashSet<(i64, i64)> = HashSet::from_iter(input.iter().cloned());
-    let mut points : Points = Vec::new();
-    let min_x = input.iter().map(|p| p.0).min().unwrap() - 1;
-    let max_x = input.iter().map(|p| p.0).max().unwrap() + 1;
-    let min_y = input.iter().map(|p| p.1).min().unwrap() - 1;
-    let max_y = input.iter().map(|p| p.1).max().unwrap() + 1;
-    for i in min_y..=max_y {
-        for j in min_x..=max_x {
-            let value = get_value(i, j, &point_index, algo, min_x+1, max_x-1, min_y+1, max_y-1, rest);
-            if value {
-                points.push((i, j));
+fn add_padding(grid : &mut Grid, rest : u8) {
+    let n = grid.len();
+    // Add two rows of rest top and bottom
+    grid.insert(0, vec![rest; n]);
+    grid.insert(grid.len(), vec![rest; n]);
+
+    // Add two cols
+    for row in grid.iter_mut() {
+        row.insert(0, rest);
+        row.insert(row.len(), rest);
+    }
+}
+
+fn enhance(algo : &str, grid : &mut Grid, rest : &mut u8) {
+
+    add_padding(grid, *rest);
+    add_padding(grid, *rest);
+    let original_grid = grid.to_vec();
+    let n = original_grid.len();
+
+    for i in 0..n {
+        for j in 0..n {
+            let index= get_index(i, j, &original_grid, *rest);
+            let value = (algo.chars().nth(index as usize).unwrap() == '#') as u8;
+            grid[i][j] = value;
+        }
+    }
+    if *rest == 0 && algo.chars().nth(0).unwrap() == '#' {
+        *rest = 1;
+    } else if *rest == 1 && algo.chars().nth(511).unwrap() == '.' {
+        *rest = 0;
+    }
+
+}
+
+fn count_lits(grid : &Grid) -> usize {
+    let mut ans = 0;
+    for row in grid {
+        for &c in row {
+            if c == 1 {
+                ans += 1;
             }
         }
     }
-    let mut new_rest = rest;
-    if rest == 0 && algo.chars().nth(0).unwrap() == '#' {
-        new_rest = 1;
-    } else if rest == 1 && algo.chars().nth(511).unwrap() == '.' {
-        new_rest = 0
-    }
-    (new_rest, points)
+    ans
 }
 
-fn part1(algo : &str, input : &Points) -> usize {
-    let (rest, new_points) = enhance(algo, input, 0);
-    let (_, new_points) = enhance(algo, &new_points, rest);
-    new_points.len()
+fn part1(algo : &str, input : &Grid) -> usize {
+    let mut state = input.to_vec();
+    let mut rest = 0;
+    enhance(algo, &mut state, &mut rest);
+    enhance(algo, &mut state, &mut rest);
+    count_lits(&state)
+}
+
+fn part2(algo : &str, input : &Grid) -> usize {
+    let mut state = input.to_vec();
+    let mut rest = 0;
+    for _ in 0..50 {
+        enhance(algo, &mut state, &mut rest);
+    }
+    count_lits(&state)
 }
 
 
@@ -91,6 +132,10 @@ fn main() -> Result<(), io::Error>  {
     println!("{:#?}", part1(algo, &input));
     println!("Part 1 took {:?}", now.elapsed());
 
+    let now = Instant::now();
+    println!("{:#?}", part2(algo, &input));
+    println!("Part 2 took {:?}", now.elapsed());
+
     Ok(())
 }
 
@@ -99,7 +144,7 @@ fn main() -> Result<(), io::Error>  {
 mod tests {
     use std::collections::HashSet;
     use std::iter::FromIterator;
-    use crate::{parse_input, part1, get_index};
+    use crate::{parse_input, part1, part2};
 
     #[test]
     fn test_parts() {
@@ -111,10 +156,7 @@ mod tests {
 ..#..
 ..###"#.to_string();
         let (algo, input) = parse_input(&s1);
-        assert_eq!("..#.#..#####.#.#.#.###.##.....###.##.#..###.####..#####..#....#..#..##..###..######.###...####..#..#####..##..#.#####...##.#.#..#.##..#.#......#.###.######.###.####...#.##.##..#..#..#####.....#.#....###..#.##......#.....#..#..#..##..#...##.######.####.####.#.#...#.......#..#.#.#...####.##.#......#..#...##.#.##..#...##.#.##..###.#......#.#.......#.#.#.####.###.##...#.....####.#..#..#.##.#....##..#.####....##...##..#...#......#.#.......#.......##..####..#...#.#.#...##..#.#..###..#####........#..####......#..#", algo);
-        assert_eq!(vec![(0,0),(0,3),(1,0),(2,0),(2,1),(2,4),(3,2),(4,2),(4,3),(4,4)], input);
-        let point_index : HashSet<(i64, i64)> = HashSet::from_iter(vec![(1,0),(2,1)]);
-        assert_eq!(34, get_index(1, 1, &point_index, 0, 2, 0, 2, 0));
         assert_eq!(35, part1(algo, &input));
+        assert_eq!(3351, part2(algo, &input));
     }
 }
